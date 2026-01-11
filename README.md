@@ -6,7 +6,7 @@ A custom UI modification for the Vivaldi browser designed specifically for **Ver
 
 -   **Vertical Tabs Optimized**: Designed exclusively for the vertical tab layout to integrate seamlessly.
 -   **"Clear" Button**: Adds a `↓ Clear` button to the tab strip.
--   **Smart Positioning**: Automatically places the button between your pinned tabs and unpinned tabs.
+-   **Smart Hiding**: Automatically hides button if no unpinned tabs are present.
 -   **One-Click Cleanup**: Instantly closes all unpinned tabs in the current window when clicked.
 -   **Optimistic UI**: Immediately hides tabs upon clicking for a responsive feel, while the background process handles the actual tab removal.
 -   **Automated Installer**: Includes a Python script to handle file copying and patching of Vivaldi's `window.html`.
