@@ -11,33 +11,29 @@ A custom UI modification for the Vivaldi browser designed specifically for **Ver
 
 ## Installation
 
-### Automated Installation (Recommended)
+### 1. Enable Custom CSS (Recommended)
+Vivaldi has built-in support for custom CSS, which is the cleanest way to apply the styling.
 
-1.  **Clone the repository**:
-    ```bash
-    git clone https://github.com/thomasboyle/vivaldicleartabs.git
-    cd vivaldicleartabs
-    ```
+1.  Open Vivaldi **Settings**.
+2.  Go to **Appearance** > **Custom UI Modifications**.
+3.  Click **Select Folder...** and choose the folder where you downloaded these files (the folder containing `custom.css`).
+    *   *Note: This ensures Vivaldi loads the latest CSS directly from your folder.*
 
-2.  **Run the installer**:
-    Ensure you have Python 3 installed, then run:
-    ```bash
-    python install.py
-    ```
-    This script will:
-    *   Locate your Vivaldi installation.
-    *   Backup your existing `window.html`.
-    *   Copy `custom.js` and `custom.css` to the Vivaldi resources directory.
-    *   Patch `window.html` to load the mod.
+### 2. Install the JavaScript Mod
+The functionality (closing tabs) requires a JavaScript file that Vivaldi doesn't load by default. You must install this part.
 
-3.  **Restart Vivaldi**: Changes will take effect after a browser restart.
+#### Option A: Automated (Python Script)
+Run the included installer to copy the JS file and patch Vivaldi's `window.html`:
 
-### Manual Installation
+```bash
+python install.py
+```
 
-If you prefer to install manually or the script fails:
+*   The script will backup your `window.html`, copy `custom.js` to Vivaldi's internal resources, and apply the necessary patch.
 
-1.  Locate your Vivaldi application directory (usually `%LOCALAPPDATA%\Vivaldi\Application\<version>\resources\vivaldi`).
-2.  Copy `custom.js` and `custom.css` from this repo into that folder.
+#### Option B: Manual JS Installation
+1.  Locate your Vivaldi application directory (e.g., `%LOCALAPPDATA%\Vivaldi\Application\<version>\resources\vivaldi`).
+2.  Copy `custom.js` from this repository into that folder.
 3.  Open `window.html` in a text editor.
 4.  Add `<script src="custom.js"></script>` just before the closing `</body>` tag.
 5.  Save and restart Vivaldi.
