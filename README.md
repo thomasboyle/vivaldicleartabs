@@ -1,9 +1,10 @@
-# Vivaldi Clear Tabs Mod
+# Vivaldi Clear Tabs Mod (Vertical Tabs Layout)
 
-A custom UI modification for the Vivaldi browser that adds a convenient button to close all unpinned tabs instantly. This mod visualizes the separation between your pinned and unpinned tabs and helps keep your workspace clean.
+A custom UI modification for the Vivaldi browser designed specifically for **Vertical Tabs**. It adds a convenient button to close all unpinned tabs instantly, visualizing the separation between your pinned and unpinned tabs to help keep your workspace clean.
 
 ## Features
 
+-   **Vertical Tabs Optimized**: Designed exclusively for the vertical tab layout to integrate seamlessly.
 -   **"Clear" Button**: Adds a `↓ Clear` button to the tab strip.
 -   **Smart Positioning**: Automatically places the button between your pinned tabs and unpinned tabs.
 -   **One-Click Cleanup**: Instantly closes all unpinned tabs in the current window when clicked.
