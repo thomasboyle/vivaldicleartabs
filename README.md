@@ -2,6 +2,9 @@
 
 A custom UI modification for the Vivaldi browser designed specifically for **Vertical Tabs**. It adds a convenient button to close all unpinned tabs instantly, visualizing the separation between your pinned and unpinned tabs to help keep your workspace clean.
 
+<img width="262" height="223" alt="image" src="https://github.com/user-attachments/assets/90339451-48bf-4c32-b336-dc075bba0470" />
+
+
 ## Features
 
 -   **Vertical Tabs Optimized**: Designed exclusively for the vertical tab layout to integrate seamlessly.
