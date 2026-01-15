@@ -3,6 +3,9 @@
     const BID = 'vivaldi-close-unpinned-btn',
         TXT = '<div class="btn-content"><span class="btn-text">↓ Clear</span></div>';
 
+    let updateScheduled = false;
+    let lastState = { unpinnedCount: 0, pinnedCount: 0, position: null };
+
     const getY = (e) => {
         let s = e.style, t = s.transform;
         if (t) {
@@ -21,7 +24,6 @@
     };
 
     const close = () => {
-        // Optimistic UI: Hide immediately
         const s = document.querySelector('.tab-strip');
         if (s) {
             const a = s.querySelectorAll('.tab-position');
@@ -47,6 +49,7 @@
     };
 
     const update = () => {
+        updateScheduled = false;
         const strip = document.querySelector('.tab-strip');
         if (!strip) return;
 
@@ -62,7 +65,17 @@
         }
 
         let b = document.getElementById(BID);
-        if (!u.length) { if (b) b.style.display = 'none'; return; }
+        if (!u.length) {
+            if (b) {
+                if (b.style.display !== 'none') {
+                    b.style.display = 'none';
+                    lastState.unpinnedCount = 0;
+                    lastState.pinnedCount = p.length;
+                    lastState.position = null;
+                }
+            }
+            return;
+        }
 
         p.sort((a, b) => a.y - b.y);
         u.sort((a, b) => a.y - b.y);
@@ -76,18 +89,60 @@
             fy = (gap > 0) ? (pb + gap / 2 - 11) : (pb - 1);
         }
 
+        if (lastState.unpinnedCount === u.length && 
+            lastState.pinnedCount === p.length && 
+            lastState.position === fy && b) {
+            return;
+        }
+
         if (!b) { b = create(); strip.appendChild(b); }
 
         const s = b.style;
         if (s.display !== 'flex') s.display = 'flex';
         if (!b.classList.contains('vertical')) b.className += ' vertical';
-        s.transform = `translate3d(0,${fy}px,0)`;
+        if (s.transform !== `translate3d(0,${fy}px,0)`) {
+            s.transform = `translate3d(0,${fy}px,0)`;
+        }
         s.width = '100%';
+
+        lastState.unpinnedCount = u.length;
+        lastState.pinnedCount = p.length;
+        lastState.position = fy;
+    };
+
+    const scheduleUpdate = () => {
+        if (!updateScheduled) {
+            updateScheduled = true;
+            requestAnimationFrame(update);
+        }
     };
 
     const init = () => {
-        if (document.querySelector('#browser')) setInterval(update, 150);
-        else setTimeout(init, 500);
+        const browser = document.querySelector('#browser');
+        if (!browser) {
+            setTimeout(init, 500);
+            return;
+        }
+
+        const strip = document.querySelector('.tab-strip');
+        if (!strip) {
+            setTimeout(init, 500);
+            return;
+        }
+
+        const observer = new MutationObserver(scheduleUpdate);
+        observer.observe(strip, {
+            childList: true,
+            subtree: true,
+            attributes: true,
+            attributeFilter: ['class', 'style']
+        });
+
+        const stripContainer = strip.parentElement || strip;
+        stripContainer.addEventListener('scroll', scheduleUpdate, { passive: true });
+        window.addEventListener('resize', scheduleUpdate, { passive: true });
+
+        scheduleUpdate();
     };
     init();
 })();
