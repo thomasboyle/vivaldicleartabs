@@ -24,7 +24,9 @@
         WIDTH_100 = '100%',
         STATIC_STR = 'static',
         RELATIVE_STR = 'relative',
-        ZERO_STR_PX = '0';
+        ZERO_STR_PX = '0',
+        TRANSLATE3D_PREFIX = 'translate3d(0,',
+        TRANSLATE3D_SUFFIX = 'px,0)';
 
     let updateScheduled = false;
     let lastState = { unpinnedCount: 0, pinnedCount: 0, position: null, stripRect: null, wasVisible: true };
@@ -41,6 +43,9 @@
     let resizeHandler = null;
     let fullscreenHandlersAttached = false;
     let cachedComputedStyles = new WeakMap();
+    let cachedViewportWidth = 0;
+    const win = window;
+    const doc = document;
 
     const getY = (e, cachedRect = null, stripTop = 0) => {
         const s = e.style;
@@ -51,7 +56,7 @@
         }
         let c = cachedComputedStyles.get(e);
         if (!c) {
-            c = window.getComputedStyle(e);
+            c = win.getComputedStyle(e);
             cachedComputedStyles.set(e, c);
         }
         t = c.transform;
@@ -67,17 +72,15 @@
     };
 
     const close = () => {
-        const s = cachedStrip || document.querySelector('.tab-strip');
+        const s = cachedStrip || doc.querySelector('.tab-strip');
         if (!s) return;
         const a = s.querySelectorAll('.tab-position');
         const l = a.length;
         const ids = [];
         for (let i = 0; i < l; i++) {
             const el = a[i];
-            if (!el.classList.contains('newtab')) {
-                if (!el.getElementsByClassName('pinned').length) {
-                    el.style.display = NONE_STR;
-                }
+            if (!el.classList.contains('newtab') && !el.getElementsByClassName('pinned').length) {
+                el.style.display = NONE_STR;
             }
         }
         chrome.tabs.query({ currentWindow: true, pinned: false }, t => {
@@ -115,12 +118,10 @@
         return el.style.getPropertyValue(prop) || def;
     };
 
-    let cachedViewportWidth = 0;
     const isTabsOnRight = (strip) => {
         const rect = strip.getBoundingClientRect();
         if (!cachedViewportWidth) {
-            const win = window;
-            cachedViewportWidth = win.innerWidth || document.documentElement.clientWidth;
+            cachedViewportWidth = win.innerWidth || doc.documentElement.clientWidth;
         }
         return rect.left > cachedViewportWidth * 0.5;
     };
@@ -133,13 +134,13 @@
     const update = () => {
         updateScheduled = false;
 
-        if (cachedStrip && !document.body.contains(cachedStrip)) {
+        if (cachedStrip && !doc.body.contains(cachedStrip)) {
             cachedStrip = null;
         }
 
-        let strip = cachedStrip || document.querySelector('.tab-strip');
+        let strip = cachedStrip || doc.querySelector('.tab-strip');
         if (!strip) {
-            const b = cachedButton || document.getElementById(BID);
+            const b = cachedButton || doc.getElementById(BID);
             if (b) {
                 b.style.display = NONE_STR;
             }
@@ -149,7 +150,7 @@
 
         let stripComputed = cachedComputedStyles.get(strip);
         if (!stripComputed) {
-            stripComputed = window.getComputedStyle(strip);
+            stripComputed = win.getComputedStyle(strip);
             cachedComputedStyles.set(strip, stripComputed);
         }
         const stripRect = strip.getBoundingClientRect();
@@ -163,7 +164,7 @@
         const visibilityChanged = lastState.wasVisible !== isStripVisible;
         lastState.wasVisible = isStripVisible;
         
-        let b = cachedButton || document.getElementById(BID);
+        let b = cachedButton || doc.getElementById(BID);
         if (!isStripVisible) {
             if (b) {
                 const bStyle = b.style;
@@ -206,16 +207,16 @@
             if (el.classList.contains('newtab')) continue;
             let elStyle = cachedComputedStyles.get(el);
             if (!elStyle) {
-                elStyle = window.getComputedStyle(el);
+                elStyle = win.getComputedStyle(el);
                 cachedComputedStyles.set(el, elStyle);
             }
             if (elStyle.display === NONE_STR) continue;
             const y = getY(el, rects[i], stripTop);
             const hasPinned = el.getElementsByClassName('pinned').length > 0;
             if (hasPinned) {
-                p[p.length] = { e: el, y: y };
+                p.push({ e: el, y: y });
             } else {
-                u[u.length] = { e: el, y: y };
+                u.push({ e: el, y: y });
             }
         }
 
@@ -313,7 +314,7 @@
             bClassList.remove(TABS_RIGHT_STR);
         }
         const buttonY = fy - 1;
-        s.transform = 'translate3d(0,' + buttonY + 'px,0)';
+        s.transform = TRANSLATE3D_PREFIX + buttonY + TRANSLATE3D_SUFFIX;
         s.width = WIDTH_100;
         s.left = '';
         s.right = '';
@@ -364,10 +365,10 @@
     };
 
     const resetSeparators = () => {
-        if (cachedStrip && !document.body.contains(cachedStrip)) {
+        if (cachedStrip && !doc.body.contains(cachedStrip)) {
             cachedStrip = null;
         }
-        const strip = cachedStrip || document.querySelector('.tab-strip');
+        const strip = cachedStrip || doc.querySelector('.tab-strip');
         if (!strip) return;
         cachedStrip = strip;
 
@@ -388,7 +389,6 @@
             const hr = sep.querySelector('hr');
             if (hr) {
                 hr.style.maxWidth = '';
-                // Hide separators when there are no unpinned tabs to avoid a visible full-width flash.
                 hr.style.visibility = 'hidden';
             }
         }
@@ -396,10 +396,10 @@
     };
 
     const adjustSeparators = (button, buttonY, synchronous) => {
-        if (cachedStrip && !document.body.contains(cachedStrip)) {
+        if (cachedStrip && !doc.body.contains(cachedStrip)) {
             cachedStrip = null;
         }
-        const strip = cachedStrip || document.querySelector('.tab-strip');
+        const strip = cachedStrip || doc.querySelector('.tab-strip');
         if (!strip || !button || button.style.display === NONE_STR) {
             resetSeparators();
             return;
@@ -440,12 +440,13 @@
                         sep.style.setProperty(ORIG_POS_X, currentPositionX);
                     }
                     const newWidth = Math.max(0, buttonLeft - PADDING_2X);
+                    const newWidthStr = newWidth + PX;
                     sep.style.setProperty(POS_X, EQUAL_PADDING + PX);
-                    sep.style.setProperty(WIDTH, newWidth + PX);
+                    sep.style.setProperty(WIDTH, newWidthStr);
                     
                     const hr = sep.querySelector('hr');
                     if (hr) {
-                        hr.style.maxWidth = newWidth + PX;
+                        hr.style.maxWidth = newWidthStr;
                         hr.style.visibility = 'visible';
                     }
                     
@@ -529,7 +530,7 @@
             verifyInterval = null;
         }
         if (scrollHandler) {
-            const strip = cachedStrip || document.querySelector('.tab-strip');
+            const strip = cachedStrip || doc.querySelector('.tab-strip');
             if (strip) {
                 const stripContainer = strip.parentElement || strip;
                 stripContainer.removeEventListener('scroll', scrollHandler);
@@ -537,20 +538,20 @@
             scrollHandler = null;
         }
         if (resizeHandler) {
-            window.removeEventListener('resize', resizeHandler);
+            win.removeEventListener('resize', resizeHandler);
             resizeHandler = null;
         }
     };
 
     const init = () => {
-        const browser = document.querySelector('#browser');
+        const browser = doc.querySelector('#browser');
         if (!browser) {
             const delay = fastInitMode ? 50 : INIT_DELAY;
             setTimeout(init, delay);
             return;
         }
 
-        const strip = document.querySelector('.tab-strip');
+        const strip = doc.querySelector('.tab-strip');
         if (!strip) {
             const delay = fastInitMode ? 50 : INIT_DELAY;
             setTimeout(init, delay);
@@ -573,7 +574,7 @@
                         const removedLen = removedNodes.length;
                         for (let j = 0; j < addedLen; j++) {
                             const node = addedNodes[j];
-                            if (node.nodeType === 1 && (node.classList && node.classList.contains('tab-strip') || (node.querySelector && node.querySelector('.tab-strip')))) {
+                            if (node.nodeType === 1 && node.classList && (node.classList.contains('tab-strip') || (node.querySelector && node.querySelector('.tab-strip')))) {
                                 stripChanged = true;
                                 break;
                             }
@@ -581,7 +582,7 @@
                         if (!stripChanged) {
                             for (let j = 0; j < removedLen; j++) {
                                 const node = removedNodes[j];
-                                if (node.nodeType === 1 && (node.classList && node.classList.contains('tab-strip') || (node.querySelector && node.querySelector('.tab-strip')))) {
+                                if (node.nodeType === 1 && node.classList && (node.classList.contains('tab-strip') || (node.querySelector && node.querySelector('.tab-strip')))) {
                                     stripChanged = true;
                                     break;
                                 }
@@ -593,9 +594,7 @@
                 if (stripChanged) {
                     fastInitMode = true;
                     cachedStrip = null;
-                    setTimeout(() => {
-                        init();
-                    }, 0);
+                    setTimeout(init, 0);
                 }
             });
             stripObserver.observe(browser, {
@@ -630,11 +629,9 @@
                         const addedLen = addedNodes.length;
                         for (let j = 0; j < addedLen; j++) {
                             const node = addedNodes[j];
-                            if (node.nodeType === 1) {
-                                if (node.classList && (node.classList.contains('tab-position') || (node.querySelector && node.querySelector('.tab-position')))) {
-                                    shouldUpdate = true;
-                                    break;
-                                }
+                            if (node.nodeType === 1 && node.classList && (node.classList.contains('tab-position') || (node.querySelector && node.querySelector('.tab-position')))) {
+                                shouldUpdate = true;
+                                break;
                             }
                         }
                     }
@@ -662,7 +659,7 @@
             });
         }
 
-        if (window.ResizeObserver) {
+        if (win.ResizeObserver) {
             resizeObserver = new ResizeObserver((entries) => {
                 cachedViewportWidth = 0;
                 const len = entries.length;
@@ -680,19 +677,19 @@
                 resizeObserver.observe(strip.parentElement);
             }
             
-            const browserContainer = document.querySelector('#browser');
+            const browserContainer = doc.querySelector('#browser');
             if (browserContainer) {
                 resizeObserver.observe(browserContainer);
             }
         }
 
-        if (window.IntersectionObserver) {
+        if (win.IntersectionObserver) {
             intersectionObserver = new IntersectionObserver((entries) => {
                 const len = entries.length;
                 for (let i = 0; i < len; i++) {
                     const entry = entries[i];
                     if (!entry.isIntersecting) {
-                        const b = cachedButton || document.getElementById(BID);
+                        const b = cachedButton || doc.getElementById(BID);
                         if (b && b.style.display !== NONE_STR) {
                             b.style.display = NONE_STR;
                         }
@@ -717,7 +714,7 @@
             cachedViewportWidth = 0;
             scheduleUpdate();
         };
-        window.addEventListener('resize', resizeHandler, { passive: true });
+        win.addEventListener('resize', resizeHandler, { passive: true });
 
         if (!fullscreenHandlersAttached) {
             const handleFullscreenChange = () => {
@@ -734,9 +731,7 @@
                 lastState.position = null;
                 lastState.wasVisible = false;
                 fastInitMode = true;
-                setTimeout(() => {
-                    init();
-                }, 50);
+                setTimeout(init, 50);
             };
             
             document.addEventListener('fullscreenchange', handleFullscreenChange, { passive: true });
@@ -747,12 +742,12 @@
         }
 
         const verifyButton = () => {
-            const strip = cachedStrip || document.querySelector('.tab-strip');
+            const strip = cachedStrip || doc.querySelector('.tab-strip');
             if (!strip) return;
             
             let stripComputed = cachedComputedStyles.get(strip);
             if (!stripComputed) {
-                stripComputed = window.getComputedStyle(strip);
+                stripComputed = win.getComputedStyle(strip);
                 cachedComputedStyles.set(strip, stripComputed);
             }
             const stripRect = strip.getBoundingClientRect();
@@ -763,7 +758,7 @@
             
             if (!isStripVisible) return;
             
-            const b = document.getElementById(BID);
+            const b = doc.getElementById(BID);
             const allTabs = strip.querySelectorAll('.tab-position:not(.newtab)');
             const pinnedTabs = strip.querySelectorAll('.tab-position:not(.newtab) .pinned');
             const hasUnpinnedTabs = allTabs.length > pinnedTabs.length;
